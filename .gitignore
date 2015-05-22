@@ -4,3 +4,4 @@ mobileclient/www/js/*
 mobileclient/platforms/*
 mobileclient/plugins/*
 node_modules/
+npm-debug.log
