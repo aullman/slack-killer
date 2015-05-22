@@ -1,0 +1,38 @@
+{
+  "name": "slack-killer",
+  "version": "0.0.1",
+  "description": "Using node-webrtc, cordova-plugin-iosrtc and datachannels to build a simple Slack-like application",
+  "main": "server/bridge.js",
+  "dependencies": {
+    "http": "0.0.0",
+    "minimist": "^1.1.1",
+    "node-static-alias": "^0.1.2",
+    "wrtc": "0.0.55",
+    "ws": "^0.7.2"
+  },
+  "devDependencies": {
+    "browserify": "^10.2.1",
+    "watchify": "^3.2.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "node_modules/browserify/bin/cmd.js src/js/mobileclient.js > mobileclient/www/js/app.js && node_modules/browserify/bin/cmd.js -d src/js/webclient.js > webclient/js/app.js",
+    "watch": "node_modules/watchify/bin/cmd.js -d src/js/webclient.js -o webclient/js/app.js",
+    "start": "node server/app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aullman/slack-killer.git"
+  },
+  "keywords": [
+    "datachannel",
+    "webrtc",
+    "cordova"
+  ],
+  "author": "Adam Ullman <adam@tokbox.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/aullman/slack-killer/issues"
+  },
+  "homepage": "https://github.com/aullman/slack-killer#readme"
+}
