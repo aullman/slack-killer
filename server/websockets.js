@@ -6,17 +6,17 @@ var webrtc = require('wrtc');
 var dataChannels = require('./datachannels.js');
 
 module.exports = function (host, socketPort) {
-  var pc = null;
-  var offer = null;
-  var answer = null;
-  var remoteReceived = false;
-
-  var pendingCandidates = [];
-  
   var wss = new ws.Server({
-    'port': socketPort
-  });
+      'port': socketPort
+    });
+
   wss.on('connection', function(socket) {
+    var pc = null,
+      offer = null,
+      answer = null,
+      remoteReceived = false,
+      pendingCandidates = [];
+
     console.info('socket connected');
 
     function doHandleError(error) {

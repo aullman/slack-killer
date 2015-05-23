@@ -2,11 +2,11 @@ var peer = require('./peer.js'),
   form = require('./messageform.js');
 document.addEventListener('deviceready', function () {
   var name,
-    iOS = window.device && window.device.platform === 'iOS';
+    iOS = cordova.platformId && cordova.platformId === 'ios';
   while (!name) {
     name = prompt('Please enter your name');
   }
-  peer.initialise({
+  peer.init({
     name: name,
     host: 'adam.local',
     RTCPeerConnection: iOS ? cordova.plugins.iosrtc.RTCPeerConnection : window.webkitRTCPeerConnection,

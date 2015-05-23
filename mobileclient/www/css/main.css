@@ -10,12 +10,12 @@ form {
 }
 
 form #message {
-    width: calc(100% - 200px);
+    width: calc(100% - 100px);
     height: 35px;
 }
 
 form #submit {
-    width: 180px;
+    width: 80px;
     height: 40px;
 }
 

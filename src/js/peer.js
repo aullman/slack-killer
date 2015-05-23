@@ -3,84 +3,87 @@
     dataChannelConnected,
     bufferedMessages = [],
     userName;
-  exports.initialise = function(opts) {
+  exports.init = function(opts) {
     userName = opts.name;
     var host = opts.host || window.location.host.split(':')[0],
       bridge = host + ':9001',
       RTCPeerConnection = opts.RTCPeerConnection,
       RTCSessionDescription = opts.RTCSessionDescription,
       RTCIceCandidate = opts.RTCIceCandidate,
-      pendingCandidates = [];
+      pendingCandidates = [],
+      ws,
+      pc,
+      $messages = document.querySelector('#messages');
 
-    function doHandleError(error) {
+    function handleError(error) {
       throw error;
     }
 
-    function doComplete() {
-      console.log('complete');
-      dataChannelConnected = true;
-      bufferedMessages.forEach(function (message) {
-        dataChannel.send(message);
+    function createPeerConnection() {
+      pc = new RTCPeerConnection({
+        iceServers: [{
+          url: 'stun:stun.l.google.com:19302'
+        }]
       });
-      bufferedMessages = [];
+      pc.onsignalingstatechange = function(event) {
+        console.info("signaling state change: ", event.target.signalingState);
+      };
+      pc.oniceconnectionstatechange = function(event) {
+        console.info("ice connection state change: ", event.target.iceConnectionState);
+      };
+      pc.onicegatheringstatechange = function(event) {
+        console.info("ice gathering state change: ", event.target.iceGatheringState);
+      };
+      pc.onicecandidate = function(event) {
+        var candidate = event.candidate;
+        if (!candidate) return;
+        if (WebSocket.OPEN == ws.readyState) {
+          ws.send(JSON.stringify({
+            'type': 'ice',
+            'sdp': {
+              'candidate': candidate.candidate,
+              'sdpMid': candidate.sdpMid,
+              'sdpMLineIndex': candidate.sdpMLineIndex
+            }
+          }));
+        } else {
+          pendingCandidates.push(candidate);
+        }
+      };
+      createDataChannels();
     }
+    createPeerConnection();
 
-    function doWaitforDataChannels() {
-      console.log('awaiting data channels');
-    }
-
-    var ws = null;
-    var pc = new RTCPeerConnection({
-      iceServers: [{
-        url: 'stun:stun.l.google.com:19302'
-      }]
-    }, {
-      'optional': []
-    });
-    pc.onsignalingstatechange = function(event) {
-      console.info("signaling state change: ", event.target.signalingState);
-    };
-    pc.oniceconnectionstatechange = function(event) {
-      console.info("ice connection state change: ", event.target.iceConnectionState);
-    };
-    pc.onicegatheringstatechange = function(event) {
-      console.info("ice gathering state change: ", event.target.iceGatheringState);
-    };
-    pc.onicecandidate = function(event) {
-      var candidate = event.candidate;
-      if (!candidate) return;
-      if (WebSocket.OPEN == ws.readyState) {
-        ws.send(JSON.stringify({
-          'type': 'ice',
-          'sdp': {
-            'candidate': candidate.candidate,
-            'sdpMid': candidate.sdpMid,
-            'sdpMLineIndex': candidate.sdpMLineIndex
-          }
-        }));
-      } else {
-        pendingCandidates.push(candidate);
-      }
-    };
-
-    doCreateDataChannels();
-
-    var $messages = document.querySelector('#messages');
-
-    function doCreateDataChannels() {
+    function createDataChannels() {
       dataChannel = pc.createDataChannel('reliable', {
-        ordered: false,
+        ordered: true,
         maxRetransmits: 10
       });
       dataChannel.binaryType = 'arraybuffer';
-      dataChannel.onopen = doComplete;
+      dataChannel.onopen = function() {
+        console.log('complete');
+        dataChannelConnected = true;
+        bufferedMessages.forEach(function(message) {
+          dataChannel.send(message);
+        });
+        bufferedMessages = [];
+      };
+
       dataChannel.onmessage = function(event) {
         if ('string' == typeof event.data) {
-          var msg = JSON.parse(event.data);
-          console.log('onmessage:', data);
-          var message = document.createElement('li');
-          message.innerHTML = '<strong>' + msg.name + '</strong>: ' + msg.text;
-          $messages.appendChild(message);
+          var msg = JSON.parse(event.data),
+            msgEl = document.createElement('li');
+          msgEl.innerHTML = '<strong>' + msg.name + '</strong>: ';
+          if (msg.type === 'image') {
+            console.log('onimage');
+            var img = document.createElement('img');
+            img.src = msg.text;
+            msgEl.appendChild(img);
+          } else {
+            console.log('onmessage:', msg.text);
+            msgEl.innerHTML += msg.text;
+          }
+          $messages.appendChild(msgEl);
         } else {
           console.log('onmessage:', new Uint8Array(data));
         }
@@ -88,26 +91,26 @@
       dataChannel.onclose = function(event) {
         console.info('onclose');
       };
-      dataChannel.onerror = doHandleError;
-      doCreateOffer();
+      dataChannel.onerror = handleError;
+      createOffer();
     }
 
-    function doCreateOffer() {
+    function createOffer() {
       pc.createOffer(
-        doSetLocalDesc,
-        doHandleError
+        setLocalDesc,
+        handleError
       );
     }
 
-    function doSetLocalDesc(desc) {
+    function setLocalDesc(desc) {
       pc.setLocalDescription(
         new RTCSessionDescription(desc),
-        doSendOffer.bind(undefined, desc),
-        doHandleError
+        sendOffer.bind(undefined, desc),
+        handleError
       );
     }
 
-    function doSendOffer(offer) {
+    function sendOffer(offer) {
       ws = new WebSocket("ws://" + bridge);
       ws.onopen = function() {
         pendingCandidates.forEach(function(candidate) {
@@ -128,7 +131,7 @@
       ws.onmessage = function(event) {
         data = JSON.parse(event.data);
         if ('answer' == data.type) {
-          doSetRemoteDesc(data);
+          setRemoteDesc(data);
         } else if ('ice' == data.type) {
           if (data.sdp.candidate) {
             var candidate = new RTCIceCandidate(data.sdp.candidate);
@@ -138,18 +141,21 @@
       };
     }
 
-    function doSetRemoteDesc(desc) {
+    function setRemoteDesc(desc) {
       pc.setRemoteDescription(
         new RTCSessionDescription(desc),
-        doWaitforDataChannels,
-        doHandleError
+        function () {
+          console.log('awaiting data channels');
+        },
+        handleError
       );
     }
   };
 
-  exports.send = function(text) {
+  exports.send = function(text, img) {
     var msg = JSON.stringify({
       name: userName,
+      type: img ? 'image' : 'text',
       text: text
     });
     if (!dataChannelConnected) {
