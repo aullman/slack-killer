@@ -62,6 +62,7 @@
       dataChannel.binaryType = 'arraybuffer';
       dataChannel.onopen = function() {
         console.log('complete');
+        ws.close();
         dataChannelConnected = true;
         bufferedMessages.forEach(function(message) {
           dataChannel.send(message);
