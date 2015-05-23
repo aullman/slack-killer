@@ -19,11 +19,11 @@ module.exports = function (host, socketPort) {
 
     console.info('socket connected');
 
-    function doHandleError(error) {
+    function handleError(error) {
       throw error;
     }
 
-    function doCreateAnswer() {
+    function createAnswer() {
       remoteReceived = true;
       pendingCandidates.forEach(function(candidate) {
         if (candidate.sdp) {
@@ -31,32 +31,32 @@ module.exports = function (host, socketPort) {
         }
       });
       pc.createAnswer(
-        doSetLocalDesc,
-        doHandleError
+        setLocalDesc,
+        handleError
       );
     }
 
-    function doSetLocalDesc(desc) {
+    function setLocalDesc(desc) {
       answer = desc;
       console.info(desc);
       pc.setLocalDescription(
         desc,
-        doSendAnswer,
-        doHandleError
+        sendAnswer,
+        handleError
       );
     }
 
-    function doSendAnswer() {
+    function sendAnswer() {
       socket.send(JSON.stringify(answer));
       console.log('awaiting data channels');
     }
 
-    function doSetRemoteDesc() {
+    function setRemoteDesc() {
       console.info(offer);
       pc.setRemoteDescription(
         offer,
-        doCreateAnswer,
-        doHandleError
+        createAnswer,
+        handleError
       );
     }
 
@@ -97,7 +97,7 @@ module.exports = function (host, socketPort) {
         };
 
         dataChannels.add(pc);
-        doSetRemoteDesc();
+        setRemoteDesc();
       } else if ('ice' == data.type) {
         if (remoteReceived) {
           if (data.sdp.candidate) {
