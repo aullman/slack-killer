@@ -16,7 +16,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "node_modules/browserify/bin/cmd.js src/js/mobileclient.js > mobileclient/www/js/app.js && node_modules/browserify/bin/cmd.js -d src/js/webclient.js > webclient/js/app.js",
+    "postinstall": "mkdir -p mobileclient/www/js && node_modules/browserify/bin/cmd.js src/js/mobileclient.js > mobileclient/www/js/app.js && mkdir -p webclient/js && node_modules/browserify/bin/cmd.js -d src/js/webclient.js > webclient/js/app.js",
     "watch": "node_modules/watchify/bin/cmd.js -d src/js/webclient.js -o webclient/js/app.js",
     "start": "node server/app.js"
   },
